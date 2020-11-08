@@ -1,5 +1,6 @@
 package com.example.wifi_bluetooth;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -12,6 +13,8 @@ import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
+
+import static android.util.Log.d;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,6 +33,13 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        SharedPreferences preferences = getSharedPreferences("fileList", MODE_PRIVATE);
+        String savedName = preferences.getString("fileName","This value doesn't exist.");
+        d("searchName","savedName msg is "+savedName) ;
+
+
+
     }
 
     @Override
