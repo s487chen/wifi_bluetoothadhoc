@@ -1,9 +1,11 @@
 package com.example.wifi_bluetooth;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.util.Log;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 public class IOUtility {
     static final String RELATIVE_PREF_PATH = "/pref";
     static final int TRANSFER_SIZE = 8192;
+    static final int READFILE_SIZE = 8192;
     static void saveFile() {
         // save to file dir
     }
@@ -38,16 +41,16 @@ public class IOUtility {
         return streamOutFile(c+"/"+hash);
     }
 
-    static ArrayList<Object> readPref(Context context) {
+    static ArrayList<FileEntry> readPref(Context context) {
         int len = 0;
-        ArrayList<Object> r = new ArrayList<Object>();
+        ArrayList<FileEntry> r = new ArrayList<FileEntry>();
         try {
             String c = context.getFilesDir().getAbsolutePath();
             FileInputStream fis = streamInFile(c+RELATIVE_PREF_PATH);
             ObjectInputStream ois = new ObjectInputStream(fis);
             len = ois.readInt();
             for(int i=0;i<len;i++) {
-                r.add(ois.readObject());
+                r.add((FileEntry) ois.readObject());
             }
 
         } catch(IOException e) {
@@ -58,7 +61,7 @@ public class IOUtility {
         return r;
     }
 
-    static void savePref(Context context, ArrayList<Object> objects) {
+    static void savePref(Context context, ArrayList<FileEntry> objects) {
         try {
             String c = context.getFilesDir().getAbsolutePath();
             FileOutputStream fos = streamOutFile(c+RELATIVE_PREF_PATH);
@@ -105,6 +108,18 @@ public class IOUtility {
         }
     }
 
+    static boolean isFileExist(String path) {
+        File f = new File(path.trim());
+        if(f.isFile()) {
+            if(f.length()>0) return true;
+        }
+        return false;
+    }
+
+    static boolean isPrefExist(Context context) {
+        String c = context.getFilesDir().getAbsolutePath();
+        return isFileExist(c+RELATIVE_PREF_PATH);
+    }
 
     static FileInputStream streamInFile(String path) {
         // stream data from file
@@ -141,8 +156,64 @@ public class IOUtility {
         return false;
     }
 
+
+    static String getHash(String filePath, ProgressDialog progress, long size) {
+
+        final double percent = 1/(double)(1+size/READFILE_SIZE);
+        int progressCount = 0;
+        int div = 1;
+        int length = -1;
+
+        byte[] buffer= new byte[READFILE_SIZE];
+        MessageDigest digest = null;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        BufferedInputStream bis = null;
+        try {
+            bis = new BufferedInputStream(new FileInputStream(filePath));
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        DigestInputStream dis = new DigestInputStream(bis, digest);
+
+        while(true) {
+            try {
+                if (dis.read(buffer) == -1) break;
+                else progressCount++;
+                if(progressCount*percent>=10*div) {
+                    progress.setProgress(div);
+                    div++;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            ;
+        }
+        progress.setProgress(progress.getMax());
+        if(progress.isShowing()) progress.dismiss();
+
+        try {
+            dis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        byte[] raw = digest.digest();
+        BigInteger bigInt = new BigInteger(1, raw);
+        StringBuilder hash = new StringBuilder(bigInt.toString(16));
+        while(hash.length() < 32 ){
+            hash.insert(0, '0');
+        }
+        return hash.toString();
+
+    }
+
     static String getHash(String filePath) {
-        byte[] buffer= new byte[8192];
+        byte[] buffer= new byte[READFILE_SIZE];
         int length = -1;
         MessageDigest digest = null;
         try {

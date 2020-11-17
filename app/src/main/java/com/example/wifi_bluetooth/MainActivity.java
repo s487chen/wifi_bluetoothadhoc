@@ -33,11 +33,12 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-
-        SharedPreferences preferences = getSharedPreferences("fileList", MODE_PRIVATE);
-        String savedName = preferences.getString("fileName","This value doesn't exist.");
-        d("searchName","savedName msg is "+savedName) ;
-
+/*
+        SharedPreferences settings = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        SharedPreferences.Editor prefEditor = settings.edit();
+        prefEditor.putBoolean("isOnline", false);
+        prefEditor.commit();
+*/
 
 
     }
