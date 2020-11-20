@@ -80,17 +80,12 @@ public class InventoryActivity extends AppCompatActivity {
 
     public void addFile(View v) {
         //Checks if the permission is Enabled or not...
-        if (ContextCompat.checkSelfPermission(InventoryActivity.this,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(InventoryActivity.this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_READ_EXTERNAL_STORAGE_PERMISSION);
-        } else {
+        if (PermissionUtility.checkIOPermission(this)) {
             Intent pickFileIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pickFileIntent.setType("*/*");
             pickFileIntent.addCategory(Intent.CATEGORY_OPENABLE);
             try {
-                startActivityForResult(Intent.createChooser(pickFileIntent, "Select file to share."), ADD_FILE_PATH);
+                startActivityForResult(Intent.createChooser(pickFileIntent, "Select a file to share"), ADD_FILE_PATH);
             } catch(android.content.ActivityNotFoundException e) {
                 Toast.makeText(InventoryActivity.this, "Please install a File Manager.", Toast.LENGTH_SHORT).show();
             }

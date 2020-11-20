@@ -8,7 +8,7 @@ import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class Utils {
+public class PermissionUtility {
     private static final int REQUEST_ACCESS_FINE_LOCATION = 110;
     private static final int REQUEST_ACCESS_WIFI_STATE = 111;
     private static final int REQUEST_CHANGE_WIFI_STATE =112;
@@ -17,12 +17,14 @@ public class Utils {
     private static final int REQUEST_INTERNET = 115;
     private static final int REQUEST_BLUETOOTH = 116;
     private static final int REQUEST_BLUETOOTH_ADMIN = 117;
+    private static final int REQUEST_READ_EXTERNAL_STORAGE_PERMISSION = 118;
 
     private static Object lock = new Object();
     private static boolean allPass = true;
 
     public static boolean checkPermissions(Activity activity, boolean isRequest) {
         synchronized (lock) {
+            allPass = true;
             if (ContextCompat.checkSelfPermission(activity,
                     Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -83,5 +85,23 @@ public class Utils {
         }
     }
 
+    public static boolean checkIOPermission(Activity activity) {
+        if (ContextCompat.checkSelfPermission(activity,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_READ_EXTERNAL_STORAGE_PERMISSION);
+            return false;
+        }
+        return true;
+    }
 
+
+    public static boolean checkWifiPermission(Context context) {
+        if (ContextCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED)
+            return false;
+        return true;
+    }
 }

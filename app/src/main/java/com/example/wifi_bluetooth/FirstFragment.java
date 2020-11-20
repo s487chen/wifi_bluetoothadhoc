@@ -1,8 +1,5 @@
 package com.example.wifi_bluetooth;
 
-import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
@@ -10,8 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -19,12 +14,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.Switch;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -39,7 +30,7 @@ public class FirstFragment extends Fragment {
 
     private final int REQUEST_ENABLE_BT = 120;
     BluetoothService service;
-    Intent bluetoothIntent = new Intent(getActivity(), BluetoothService.class);
+    Intent bluetoothIntent = new Intent(getActivity().getApplicationContext(), BluetoothService.class);
     boolean bound = false;
 
     @Override
@@ -80,8 +71,8 @@ public class FirstFragment extends Fragment {
 
                 if(isChecked) {
                     //Checks if the permission is Enabled or not...
-                    if(!Utils.checkPermissions(getActivity(),true)) {
-                        if(Utils.checkPermissions(getActivity(),false)) {
+                    if(!PermissionUtility.checkPermissions(getActivity(),true)) {
+                        if(PermissionUtility.checkPermissions(getActivity(),false)) {
                             buttonView.setChecked(false);
                             return;
                         }
@@ -111,8 +102,8 @@ public class FirstFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onResume() {
+        super.onResume();
         SharedPreferences preferences = getActivity().getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
         boolean isCheck = preferences.getBoolean("isOnline",false);
         ((Switch)getActivity().findViewById(R.id.switchConnect)).setChecked(isCheck);
@@ -145,8 +136,8 @@ public class FirstFragment extends Fragment {
 
 
     @Override
-    public void onStop() {
-        super.onStop();
+    public void onPause() {
+        super.onPause();
         // unbind
         getActivity().unbindService(connection);
         bound = false;

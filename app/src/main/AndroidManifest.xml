@@ -27,10 +27,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Wifi_bluetooth">
-        <receiver
-            android:name=".WifiDirectBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true"></receiver>
+
 
         <service
             android:name=".BluetoothService"

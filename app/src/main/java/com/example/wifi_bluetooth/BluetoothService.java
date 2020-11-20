@@ -112,6 +112,38 @@ public class BluetoothService extends Service {
 
     }
 
+    public void quest(String key, String path) {
 
+    }
 
+    public void download(String mac) {
+        notificationManager.notify(1,buildNotification(NOTIFY_DOWNLOAD));
+        Intent it = new Intent(getApplicationContext(),WifiService.class);
+        it.putExtra("target",mac);
+        it.setAction("download");
+        startForegroundService(it);
+    }
+
+    public void upload(String mac) {
+        notificationManager.notify(1,buildNotification(NOTIFY_UPLOAD));
+        Intent it = new Intent(getApplicationContext(),WifiService.class);
+        it.putExtra("target",mac);
+        it.setAction("upload");
+        startForegroundService(it);
+    }
+
+    public void relay(String mac1, String mac2) {
+        notificationManager.notify(1,buildNotification(NOTIFY_RELAY));
+        Intent it = new Intent(getApplicationContext(),WifiService.class);
+        it.putExtra("source",mac1);
+        it.putExtra("target",mac2);
+        it.setAction("relay");
+        startForegroundService(it);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+    }
 }
