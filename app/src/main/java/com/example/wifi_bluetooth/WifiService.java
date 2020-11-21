@@ -7,10 +7,13 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.MacAddress;
+import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.widget.Toast;
@@ -34,12 +37,15 @@ public class WifiService extends Service {
     private WifiP2pManager manager;
     private WifiP2pManager.Channel channel;
     private WifiDirectBroadcastReceiver receiver;
+    private final IBinder binder = new WifiService.WifiBinder();
 
     final String CHANNEL_ID = "bluetoothwifi_2";
     final int NOTIFICATION_ID = 2;
     private NotificationManager notificationManager;
-    private NotificationCompat.Builder nBuilder;
 
+    private boolean importantNote = false;
+    private int currentWork = 0;
+    private ArrayList<WifiTask> queue = new ArrayList<>();
 
     public WifiService() {
 
@@ -77,15 +83,26 @@ public class WifiService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(NOTIFICATION_ID, buildNotification(1));
-        relay();
+        startForeground(NOTIFICATION_ID,
+                WifiUtility.buildNotification(WifiUtility.NOTIFY_IDLE,this,CHANNEL_ID).build());
+        idle();
         return START_STICKY;
     }
+    public class WifiBinder extends Binder {
+        WifiService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return WifiService.this;
+        }
+    }
+
 
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+        importantNote=false;
+        notificationManager.notify(NOTIFICATION_ID,
+                WifiUtility.buildNotification(currentWork,this,CHANNEL_ID).build());
+        return binder;
     }
 
     public void updateDeviceList(Collection<WifiP2pDevice> deviceList) {
@@ -121,11 +138,15 @@ public class WifiService extends Service {
         }
     }
 
+    public void disconnect() {
+        // current connection gets cut
+    }
 
     public void connect(String macAddress) {
         WifiP2pDevice device;
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = macAddress;
+        config.wps.setup = WpsInfo.PBC;
         if(PermissionUtility.checkWifiPermission(this))
         manager.connect(channel, config, new WifiP2pManager.ActionListener() {
 
@@ -145,34 +166,54 @@ public class WifiService extends Service {
 
     }
 
-    public void relay() {
-        //
+    public void quest(String key, String path) {
+
+    }
+    public void idle() {
+        currentWork = WifiUtility.NOTIFY_IDLE;
+        if(!importantNote)
+        notificationManager.notify(NOTIFICATION_ID,
+                WifiUtility.buildNotification(WifiUtility.NOTIFY_IDLE,this,CHANNEL_ID).build());
+
     }
 
-    private Notification buildNotification(int state) {
-        if(nBuilder == null) nBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Bluetooth-WiFi File Sharing");
-        if(state == 1) {
-            // relay
-            nBuilder.setContentText("Relaying").setPriority(NotificationCompat.PRIORITY_MIN);
-        } else if(state == 2) {
-            // upload
-            nBuilder.setSmallIcon(R.drawable.ic_upload)
-                    .setContentText("Uploading").setPriority(NotificationCompat.PRIORITY_DEFAULT);;
-        } else if(state == 3) {
-            // download
-            nBuilder.setSmallIcon(R.drawable.ic_download)
-                    .setContentText("Downloading").setPriority(NotificationCompat.PRIORITY_DEFAULT);;
+
+    public void download(String mac, boolean doesNotify) {
+
+        if(doesNotify) {
+            importantNote = true;
+            currentWork = WifiUtility.NOTIFY_DOWNLOAD;
+            NotificationCompat.Builder b = WifiUtility.buildNotification(WifiUtility.NOTIFY_DOWNLOAD,this,CHANNEL_ID);
+            notificationManager.notify(NOTIFICATION_ID, b.build());
         }
 
+    }
 
-        return nBuilder.build();
+    public void upload(String mac, boolean doesNotify) {
+        if(doesNotify) {
+            importantNote = true;
+            currentWork = WifiUtility.NOTIFY_UPLOAD;
+            NotificationCompat.Builder b = WifiUtility.buildNotification(WifiUtility.NOTIFY_UPLOAD, this, CHANNEL_ID);
+            notificationManager.notify(NOTIFICATION_ID, b.build());
+        }
 
     }
+
+    public void relay(String mac1, String mac2) {
+        currentWork = WifiUtility.NOTIFY_RELAY;
+        if(!importantNote)
+        notificationManager.notify(NOTIFICATION_ID,
+                WifiUtility.buildNotification(WifiUtility.NOTIFY_RELAY,this,CHANNEL_ID).build());
+        // cache
+
+    }
+
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(receiver);
+        SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        preferences.edit().putBoolean("is_online",false);
     }
 }

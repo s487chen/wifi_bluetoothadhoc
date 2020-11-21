@@ -29,9 +29,12 @@ import static android.util.Log.d;
 public class FirstFragment extends Fragment {
 
     private final int REQUEST_ENABLE_BT = 120;
-    BluetoothService service;
-    Intent bluetoothIntent = new Intent(getActivity().getApplicationContext(), BluetoothService.class);
-    boolean bound = false;
+    BluetoothService bluetoothService;
+    WifiService wifiService;
+    final Intent bluetoothIntent = new Intent(getActivity().getApplicationContext(), BluetoothService.class);
+    final Intent wifiIntent = new Intent(getActivity().getApplicationContext(), WifiService.class);
+    boolean bluetoothBound = false;
+    boolean wifiBound = false;
 
     @Override
     public View onCreateView(
@@ -48,10 +51,11 @@ public class FirstFragment extends Fragment {
         view.findViewById(R.id.button_first).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(bound)
+                // request download
+                if(bluetoothBound && wifiBound)
                 NavHostFragment.findNavController(FirstFragment.this)
                         .navigate(R.id.action_FirstFragment_to_SecondFragment);
-                else Snackbar.make(view,"Please connect to Adhoc network first.", BaseTransientBottomBar.LENGTH_SHORT);
+                else Snackbar.make(view,"Please connect to Ad-hoc network first.", BaseTransientBottomBar.LENGTH_SHORT);
             }
         });
 
@@ -67,13 +71,13 @@ public class FirstFragment extends Fragment {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
                 SharedPreferences preferences = getActivity().getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
-                preferences.edit().putBoolean("is_online", isChecked).apply();
 
                 if(isChecked) {
                     //Checks if the permission is Enabled or not...
-                    if(!PermissionUtility.checkPermissions(getActivity(),true)) {
-                        if(PermissionUtility.checkPermissions(getActivity(),false)) {
+                    if(!PermissionUtility.checkWifiPermissions(getActivity(),true)) {
+                        if(!PermissionUtility.checkWifiPermissions(getActivity(),false)) {
                             buttonView.setChecked(false);
+                            preferences.edit().putBoolean("is_online", false).apply();
                             return;
                         }
                     }
@@ -85,16 +89,23 @@ public class FirstFragment extends Fragment {
 
                     if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
                         buttonView.setChecked(false);
+                        preferences.edit().putBoolean("is_online", false).apply();
                         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                         return;
                     }
 
+                    getActivity().startForegroundService(wifiIntent);
                     getActivity().startForegroundService(bluetoothIntent);
+
+                    preferences.edit().putBoolean("is_online", true).apply();
+
                 } else {
                     //Stop service
                     getActivity().stopService(bluetoothIntent);
+                    getActivity().stopService(wifiIntent);
                     buttonView.setChecked(false);
+                    preferences.edit().putBoolean("is_online", false).apply();
                 }
             }
         });
@@ -110,36 +121,58 @@ public class FirstFragment extends Fragment {
 
         if(isCheck) {
             // bind to service
-            Intent intent = new Intent(getActivity(), BluetoothService.class);
-            getActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            Intent intent1 = new Intent(getActivity(), BluetoothService.class);
+            getActivity().bindService(intent1, connection1, Context.BIND_AUTO_CREATE);
 
+            Intent intent2 = new Intent(getActivity(), WifiService.class);
+            getActivity().bindService(intent2, connection2, Context.BIND_AUTO_CREATE);
         }
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection connection = new ServiceConnection() {
+    private ServiceConnection connection1 = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className,
                                        IBinder serviceBinder) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             BluetoothService.BluetoothBinder binder = (BluetoothService.BluetoothBinder) serviceBinder;
-            service = binder.getService();
-            bound = true;
+            bluetoothService = binder.getService();
+            bluetoothBound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            bound = false;
+            bluetoothBound = false;
         }
     };
+
+    private ServiceConnection connection2 = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder serviceBinder) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            WifiService.WifiBinder binder = (WifiService.WifiBinder) serviceBinder;
+            wifiService = binder.getService();
+            wifiBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            wifiBound = false;
+        }
+    };
+
 
 
     @Override
     public void onPause() {
         super.onPause();
         // unbind
-        getActivity().unbindService(connection);
-        bound = false;
+        getActivity().unbindService(connection1);
+        bluetoothBound = false;
+        getActivity().unbindService(connection2);
+        wifiBound = false;
     }
 }

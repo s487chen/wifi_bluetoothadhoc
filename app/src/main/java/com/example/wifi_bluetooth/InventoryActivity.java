@@ -4,9 +4,11 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.AppComponentFactory;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -14,6 +16,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -32,6 +35,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.File;
@@ -44,8 +49,10 @@ public class InventoryActivity extends AppCompatActivity {
     ListView listView;
     ArrayList<FileEntry> arrayOfFiles;
     FileAdaptor adapter;
+    BluetoothService service;
+    boolean bound = false;
+
     private ProgressDialog progress;
-    final int REQUEST_READ_EXTERNAL_STORAGE_PERMISSION = 123;
     final int ADD_FILE_PATH = 226;
 
 
@@ -121,6 +128,10 @@ public class InventoryActivity extends AppCompatActivity {
                 // User clicked OK button
                 adapter.remove(f);
                 IOUtility.savePref(InventoryActivity.this, arrayOfFiles);
+                // notify bluetooth service
+                service.refreshFileList();
+                Snackbar.make(findViewById(android.R.id.content).getRootView(),"Success!", BaseTransientBottomBar.LENGTH_SHORT);
+
             }
         }).setNegativeButton("cancel", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
@@ -141,6 +152,9 @@ public class InventoryActivity extends AppCompatActivity {
                 // User clicked OK button
                 adapter.clear();
                 IOUtility.savePref(InventoryActivity.this, arrayOfFiles);
+                // notify bluetooth service
+                service.refreshFileList();
+                Snackbar.make(findViewById(android.R.id.content).getRootView(),"Success!", BaseTransientBottomBar.LENGTH_SHORT);
             }
         }).setNegativeButton("cancel", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
@@ -234,7 +248,49 @@ public class InventoryActivity extends AppCompatActivity {
         String hashCode = IOUtility.getHash(path,progress,size);
         this.adapter.add(new FileEntry(name,path,hashCode,size));
         IOUtility.savePref(this, arrayOfFiles);
+
+        service.refreshFileList();
+        Snackbar.make(findViewById(android.R.id.content).getRootView(),"Success!", BaseTransientBottomBar.LENGTH_SHORT);
+        // notify bluetooth Service
     }
 
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection connection = new ServiceConnection() {
 
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder serviceBinder) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            BluetoothService.BluetoothBinder binder = (BluetoothService.BluetoothBinder) serviceBinder;
+            service = binder.getService();
+            bound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            bound = false;
+        }
+    };
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Intent intent = new Intent(getApplicationContext(), WifiService.class);
+        SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        if(preferences.getBoolean("is_online",false)) {
+            bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            bound = true;
+        } else {
+            Toast.makeText(this,"Disconnected to Ad-hoc network.", Toast.LENGTH_SHORT).show();
+            bound = false;
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // unbind
+        if(bound) unbindService(connection);
+        bound = false;
+    }
 }

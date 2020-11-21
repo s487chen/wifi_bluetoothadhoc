@@ -20,14 +20,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.File;
 
 import static android.content.Context.MODE_PRIVATE;
 
 public class SecondFragment extends Fragment {
     final int OPEN_DIR=131;
-
-    BluetoothService service;
+    WifiService service;
     boolean bound = false;
     String key;
 
@@ -58,7 +60,7 @@ public class SecondFragment extends Fragment {
             public void onClick(View v) {
                 EditText simpleEditText = view.findViewById(R.id.fileKey);
                 key = simpleEditText.getText().toString();
-                if(key=="" || key==null) Toast.makeText(getActivity(), "Please enter key.", Toast.LENGTH_SHORT).show();
+                if(key.equals("")) Toast.makeText(getActivity(), "Please enter key.", Toast.LENGTH_SHORT).show();
                 else if(PermissionUtility.checkIOPermission(getActivity())) {
 
                     Intent chooserIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
@@ -83,10 +85,10 @@ public class SecondFragment extends Fragment {
                 String uriString = uri.toString();
                 File myFile = new File(uriString);
                 String path = myFile.getAbsolutePath();
-
-                Intent bindBluetooth = new Intent(getActivity(),BluetoothService.class);
-                getActivity().bindService(bindBluetooth, connection, Context.BIND_IMPORTANT);
-                service.quest(key,path);
+                if(bound) {
+                    service.quest(key, path);
+                    Snackbar.make(getView(), "Success!", BaseTransientBottomBar.LENGTH_SHORT);
+                }
             }
         }
     }
@@ -98,7 +100,7 @@ public class SecondFragment extends Fragment {
         public void onServiceConnected(ComponentName className,
                                        IBinder serviceBinder) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
-            BluetoothService.BluetoothBinder binder = (BluetoothService.BluetoothBinder) serviceBinder;
+            WifiService.WifiBinder binder = (WifiService.WifiBinder) serviceBinder;
             service = binder.getService();
             bound = true;
         }
@@ -112,8 +114,15 @@ public class SecondFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        Intent intent = new Intent(getActivity(), BluetoothService.class);
-        getActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(getActivity(), WifiService.class);
+        SharedPreferences preferences = getActivity().getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        if(preferences.getBoolean("is_online",false)) {
+            getActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            bound = true;
+        } else {
+            Toast.makeText(getActivity(), "Disconnected to Ad-hoc network.", Toast.LENGTH_SHORT).show();
+            bound=false;
+        }
 
     }
 
@@ -121,7 +130,7 @@ public class SecondFragment extends Fragment {
     public void onPause() {
         super.onPause();
         // unbind
-        getActivity().unbindService(connection);
+        if(!bound) getActivity().unbindService(connection);
         bound = false;
     }
 

@@ -22,7 +22,7 @@ public class PermissionUtility {
     private static Object lock = new Object();
     private static boolean allPass = true;
 
-    public static boolean checkPermissions(Activity activity, boolean isRequest) {
+    public static boolean checkWifiPermissions(Activity activity, boolean isRequest) {
         synchronized (lock) {
             allPass = true;
             if (ContextCompat.checkSelfPermission(activity,

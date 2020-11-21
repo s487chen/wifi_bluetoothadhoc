@@ -43,16 +43,15 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
             if (manager == null) {
                 return;
             }
-            NetworkInfo networkInfo = (NetworkInfo) intent
+            NetworkInfo networkInfo = intent
                     .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
             if (networkInfo.isConnected()) {
                 // we are connected with the other device, request connection
                 // info to find group owner IP
-
                 manager.requestConnectionInfo(channel, connectionInfoListener);
             } else {
                 // It's a disconnect
-                service.resetData();
+                service.disconnect();
             }
 
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
@@ -68,14 +67,21 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
         }
     };
 
-    private WifiP2pManager.ConnectionInfoListener connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
+    private WifiP2pManager.ConnectionInfoListener connectionInfoListener = info -> {
+        // determine group owner
 
-        @Override
-        public void onConnectionInfoAvailable(WifiP2pInfo info) {
-            // determine group owner
+        // String from WifiP2pInfo struct
+        String groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
 
-            info.groupOwnerAddress
-            service.admin()
+        if (info.groupFormed && info.isGroupOwner) {
+            // Do whatever tasks are specific to the group owner.
+            // One common case is creating a group owner thread and accepting
+            // incoming connections.
+        } else if (info.groupFormed) {
+            // The other device acts as the peer (client). In this case,
+            // you'll want to create a peer thread that connects
+            // to the group owner.
         }
+
     };
 }

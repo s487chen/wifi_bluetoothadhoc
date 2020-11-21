@@ -8,26 +8,29 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 
 import androidx.core.app.NotificationCompat;
 
+import java.util.ArrayList;
+
 
 public class BluetoothService extends Service {
     private BluetoothAdapter bluetoothAdapter;
     final String CHANNEL_ID = "bluetoothwifi";
     final int NOTIFICATION_ID = 1;
+
+    public ArrayList<FileEntry> fileList;
     // Binder given to clients
     private final IBinder binder = new BluetoothBinder();
     private NotificationManager notificationManager;
 
     // notification state
-    final int NOTIFY_SYNC = 0;
-    final int NOTIFY_RELAY = 1;
-    final int NOTIFY_DOWNLOAD = 2;
-    final int NOTIFY_UPLOAD = 3;
+    final int NOTIFY_SYNC = -1;
+    final int NOTIFY_IDLE = 0;
 
 
     public BluetoothService() {
@@ -61,7 +64,8 @@ public class BluetoothService extends Service {
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
 
         startForeground(NOTIFICATION_ID, buildNotification(NOTIFY_SYNC));
-
+        refreshFileList();
+        idle();
         return START_STICKY;
 
     }
@@ -89,22 +93,14 @@ public class BluetoothService extends Service {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Bluetooth-WiFi File Sharing")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-        if(state == 0) {
+        if(state == NOTIFY_SYNC) {
             // sync
             builder.setSmallIcon(R.drawable.ic_sync)
-                    .setContentText("Synchronizing...");
-        } else if(state == 1) {
-            // relay
-            builder.setSmallIcon(R.drawable.ic_relay)
-                    .setContentText("Relaying...");
-        } else if(state == 2) {
-            // upload
-            builder.setSmallIcon(R.drawable.ic_upload)
-                    .setContentText("Uploading...");
-        } else if(state == 3) {
-            // download
-            builder.setSmallIcon(R.drawable.ic_download)
-                    .setContentText("Downloading...");
+                    .setContentText("Bluetooth Synchronizing");
+        } else if(state == NOTIFY_IDLE) {
+            // idle
+            builder.setSmallIcon(R.drawable.ic_idle)
+                    .setContentText("Bluetooth Idle");
         }
 
 
@@ -112,38 +108,30 @@ public class BluetoothService extends Service {
 
     }
 
-    public void quest(String key, String path) {
-
+    public void idle() {
+        notificationManager.notify(NOTIFICATION_ID,buildNotification(NOTIFY_IDLE));
     }
 
-    public void download(String mac) {
-        notificationManager.notify(1,buildNotification(NOTIFY_DOWNLOAD));
-        Intent it = new Intent(getApplicationContext(),WifiService.class);
-        it.putExtra("target",mac);
-        it.setAction("download");
-        startForegroundService(it);
+    public void sync() {
+        notificationManager.notify(NOTIFICATION_ID,buildNotification(NOTIFY_SYNC));
     }
 
-    public void upload(String mac) {
-        notificationManager.notify(1,buildNotification(NOTIFY_UPLOAD));
-        Intent it = new Intent(getApplicationContext(),WifiService.class);
-        it.putExtra("target",mac);
-        it.setAction("upload");
-        startForegroundService(it);
+    private void advertise() {
+        // share all known nodes' fileList (with version number)
+        // share my Mac, S/M my routing table
     }
 
-    public void relay(String mac1, String mac2) {
-        notificationManager.notify(1,buildNotification(NOTIFY_RELAY));
-        Intent it = new Intent(getApplicationContext(),WifiService.class);
-        it.putExtra("source",mac1);
-        it.putExtra("target",mac2);
-        it.setAction("relay");
-        startForegroundService(it);
+    public void refreshFileList() {
+        this.fileList = IOUtility.readPref(this);
     }
+
+
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        preferences.edit().putBoolean("is_online",false);
 
     }
 }
