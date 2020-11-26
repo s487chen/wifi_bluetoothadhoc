@@ -77,10 +77,13 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
             // Do whatever tasks are specific to the group owner.
             // One common case is creating a group owner thread and accepting
             // incoming connections.
+            new WifiUtility.FileServerAsyncTask().execute(url1, url2, url3);
+
         } else if (info.groupFormed) {
             // The other device acts as the peer (client). In this case,
             // you'll want to create a peer thread that connects
             // to the group owner.
+            new WifiUtility.FileClientAsyncTask().execute(url1, url2, url3);
         }
 
     };

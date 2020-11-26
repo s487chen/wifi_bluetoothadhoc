@@ -114,10 +114,10 @@ public class SecondFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        Intent intent = new Intent(getActivity(), WifiService.class);
+        Intent intent = new Intent(getActivity().getApplicationContext(), WifiService.class);
         SharedPreferences preferences = getActivity().getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
         if(preferences.getBoolean("is_online",false)) {
-            getActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            if(getActivity().bindService(intent, connection, 0))
             bound = true;
         } else {
             Toast.makeText(getActivity(), "Disconnected to Ad-hoc network.", Toast.LENGTH_SHORT).show();

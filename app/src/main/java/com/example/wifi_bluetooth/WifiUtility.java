@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -51,6 +52,7 @@ public class WifiUtility {
             this.builder = builder;
         }
 
+
         @Override
         protected String doInBackground(String... params) {
             String path = params[0];
@@ -81,6 +83,7 @@ public class WifiUtility {
 
                 IOUtility.transferData(inputstream,IOUtility.saveCache(context,fileName),manager,mID, builder, fileSize);
 
+                client.close();
                 serverSocket.close();
 
                 // verify
@@ -119,9 +122,74 @@ public class WifiUtility {
 
     // set client
     // send file
+    public static class FileClientAsyncTask extends AsyncTask<String,Integer,String> {
+        private Context context;
+        private int mID;
+        private NotificationManager manager;
+        private NotificationCompat.Builder builder;
+        private boolean isCache;
 
 
-    private static byte[] MakeCtrlMsg(int size, String hashCode, String name) {
+        public FileClientAsyncTask(Context context, NotificationManager manager, int mID, NotificationCompat.Builder builder, boolean isCache) {
+            this.context = context;
+            this.isCache = isCache;
+            this.mID = mID;
+            this.manager = manager;
+            this.builder = builder;
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            String host = params[0];
+            String path = params[1];
+            String fname = params[2];
+            int fsize = Integer.parseInt(params[3]);
+            String fhash = params[4];
+
+
+            try {
+
+                /**
+                 * Create a server socket and wait for client connections. This
+                 * call blocks until a connection is accepted from a client
+                 */
+                Socket client = new Socket(host,PORT);
+
+                /**
+                 * If this code is reached, a client has connected and transferred data
+                 * read control msg
+                 */
+                OutputStream outputstream = client.getOutputStream();
+
+                byte[] ctrlBuffer = makeCtrlMsg(fsize,fhash,fname);
+                outputstream.write(ctrlBuffer);
+                IOUtility.transferData(IOUtility.streamInFile(path),outputstream);
+
+                client.close();
+
+                return path;
+            } catch (IOException e) {
+                Log.e("wifiutil_server", e.getMessage());
+                return null;
+            }
+
+        }
+
+        /**
+         * Start activity that can handle the JPEG image
+         */
+        @Override
+        protected void onPostExecute(String result) {
+            if (result == null) {
+
+            } else {
+
+            }
+        }
+    }
+
+
+    private static byte[] makeCtrlMsg(int size, String hashCode, String name) {
         return IOUtility.merge(IOUtility.intToBits(size),IOUtility.pad(hashCode, 32),
                 IOUtility.intToBits(name.length()), IOUtility.ASCIIToBits(name));
     }

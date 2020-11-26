@@ -215,5 +215,7 @@ public class WifiService extends Service {
         unregisterReceiver(receiver);
         SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
         preferences.edit().putBoolean("is_online",false);
+        Intent btIntent = new Intent(getApplicationContext(), BluetoothService.class);
+        stopService(btIntent);
     }
 }

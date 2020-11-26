@@ -155,6 +155,7 @@ public class InventoryActivity extends AppCompatActivity {
                 // notify bluetooth service
                 service.refreshFileList();
                 Snackbar.make(findViewById(android.R.id.content).getRootView(),"Success!", BaseTransientBottomBar.LENGTH_SHORT);
+
             }
         }).setNegativeButton("cancel", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
@@ -278,7 +279,7 @@ public class InventoryActivity extends AppCompatActivity {
         Intent intent = new Intent(getApplicationContext(), WifiService.class);
         SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
         if(preferences.getBoolean("is_online",false)) {
-            bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            bindService(intent, connection, 0);
             bound = true;
         } else {
             Toast.makeText(this,"Disconnected to Ad-hoc network.", Toast.LENGTH_SHORT).show();
