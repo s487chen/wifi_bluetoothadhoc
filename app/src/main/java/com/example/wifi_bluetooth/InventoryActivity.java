@@ -228,6 +228,13 @@ public class InventoryActivity extends AppCompatActivity {
                     } else if (uriString.startsWith("file://")) {
                         displayName = myFile.getName();
                     }
+                    for(FileEntry i:arrayOfFiles) {
+                        if(i.fpath==path) {
+                            Snackbar.make(findViewById(android.R.id.content).getRootView(),
+                                    "File Already Exist.", BaseTransientBottomBar.LENGTH_SHORT);
+                            return;
+                        }
+                    }
                     updateListView(displayName, path, size);
                 }
 
