@@ -21,12 +21,14 @@ import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 
 public class BluetoothService extends Service {
     private BluetoothAdapter bluetoothAdapter;
     public int network = -1;
     public boolean isMaster=false;
+    public Map<String,DeviceEntry> deviceEntryMap;
 
     public int rebellionCount = 0;
     private final int MAX_TOLERANCE = 5;
@@ -34,6 +36,7 @@ public class BluetoothService extends Service {
     final String CHANNEL_ID = "bluetoothwifi";
     final int NOTIFICATION_ID = 1;
 
+    private BTUtility.CustomThread workingThread;
     public ArrayList<BluetoothDevice> discoveredBTDevices = new ArrayList<>();
     public ArrayList<FileEntry> fileList;
     private ArrayList<BluetoothDevice> slaveList = new ArrayList<>();
@@ -199,6 +202,7 @@ public class BluetoothService extends Service {
         SharedPreferences preferences = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
         preferences.edit().putBoolean("is_online",false);
         unregisterReceiver(receiver);
+        workingThread.cancel();
         Intent wifiIntent = new Intent(getApplicationContext(), WifiService.class);
         stopService(wifiIntent);
 
@@ -226,6 +230,9 @@ public class BluetoothService extends Service {
 
     public void beDiscoverable(int duration) {
         // for master
+        BTUtility.MasterThread t = new BTUtility.MasterThread(bluetoothAdapter,deviceEntryMap,this);
+        t.run();
+        workingThread = t;
         // need user permission
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration);
@@ -233,8 +240,16 @@ public class BluetoothService extends Service {
 
     }
 
+
     private void rebel() {
         isMaster = true;
+        workingThread.cancel();
         beDiscoverable(300);
+    }
+
+    private void connect(BluetoothDevice d) {
+        BTUtility.SlaveThread t = new BTUtility.SlaveThread(bluetoothAdapter,d,deviceEntryMap);
+        t.run();
+        workingThread = t;
     }
 }
