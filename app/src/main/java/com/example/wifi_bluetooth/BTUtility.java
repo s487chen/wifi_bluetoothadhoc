@@ -283,6 +283,19 @@ public class BTUtility {
         socket.close();
     }
 
+    public static String exchangeName(ObjectInputStream in,ObjectOutputStream out, String myMac) throws Exception {
+        out.writeObject(myMac);
+        return (String)in.readObject();
+    }
+
+    public static void sendCmd() {
+
+    }
+
+    public static void readCmd() {
+
+    }
+
     public static void promoteMaster() {
 
     }
