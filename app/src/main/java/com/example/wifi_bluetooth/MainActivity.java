@@ -1,5 +1,6 @@
 package com.example.wifi_bluetooth;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -12,6 +13,8 @@ import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
+
+import static android.util.Log.d;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,6 +33,14 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+/*
+        SharedPreferences settings = getSharedPreferences("IS_ONLINE", MODE_PRIVATE);
+        SharedPreferences.Editor prefEditor = settings.edit();
+        prefEditor.putBoolean("isOnline", false);
+        prefEditor.commit();
+*/
+
+
     }
 
     @Override
